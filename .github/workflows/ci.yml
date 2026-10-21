@@ -49,13 +49,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build Shared Packages
+        run: npm run build:packages
+
+      - name: Typecheck / Lint
+        run: npm run lint
+
       - name: Initialize Database Schema
         run: |
           docker cp infra/docker/init.sql $(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg16):/tmp/init.sql
           docker exec $(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg16) psql -U aerostream -d aerostream_db -f /tmp/init.sql
-
-      - name: Typecheck / Lint
-        run: npm run lint
 
       - name: Run Test Suites
         run: npm test

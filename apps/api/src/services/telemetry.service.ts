@@ -59,7 +59,7 @@ export class TelemetryService {
   async processBatch(payload: unknown): Promise<IngestionResponse> {
     const parsed: BatchTelemetry = BatchTelemetrySchema.parse(payload);
     
-    const enrichedRecords = parsed.records.map(record => ({
+    const enrichedRecords = parsed.records.map((record: DroneTelemetry) => ({
       ...record,
       activeAlerts: this.evaluateSafetyRules(record)
     }));

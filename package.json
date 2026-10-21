@@ -8,7 +8,8 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run --workspaces build",
+    "build:packages": "npm run --workspace=@aerostream/shared-types build",
+    "build": "npm run build:packages && npm run --workspaces --if-present build",
     "test": "npm run --workspaces test",
     "lint": "npm run --workspaces lint",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
