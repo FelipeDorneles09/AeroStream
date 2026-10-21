@@ -129,7 +129,7 @@ npm run dev:simulator
 ```bash
 npm test
 ```
-Interactive Swagger documentation is available at `http://localhost:3000/docs`.
+Interactive Swagger documentation is available at `http://localhost:3001/docs`.
 
 ---
 
