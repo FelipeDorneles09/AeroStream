@@ -35,7 +35,8 @@ export async function buildApp() {
         version: '0.1.0'
       },
       servers: [
-        { url: `http://${config.host}:${config.port}` }
+        { url: '/', description: 'Current Host' },
+        { url: `http://localhost:${config.port}`, description: 'Localhost' }
       ]
     }
   });
