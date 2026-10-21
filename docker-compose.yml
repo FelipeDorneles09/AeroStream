@@ -1,0 +1,49 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: aerostream-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-aerostream}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-aerostream_secret}
+      POSTGRES_DB: ${DB_NAME:-aerostream_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - timescaledb_data:/home/postgres/pgdata/data
+      - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aerostream} -d ${DB_NAME:-aerostream_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aerostream-network
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: aerostream-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - aerostream-network
+
+volumes:
+  timescaledb_data:
+    name: aerostream_timescaledb_data
+  redis_data:
+    name: aerostream_redis_data
+
+networks:
+  aerostream-network:
+    name: aerostream-network
+    driver: bridge

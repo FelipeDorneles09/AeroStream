@@ -90,11 +90,46 @@ aerostream/
 ## 🚦 Roadmap
 
 - [x] **Fase 0: Repositório & Governança:** Padrões de commit, templates de PR/Issue e setup de ADRs.
-- [ ] **Fase 1: Fundação:** Simulador sintético, Ingestion API, PostgreSQL (TimescaleDB) e testes de integração com Docker Compose.
+- [x] **Fase 1: Fundação:** Simulador sintético, Ingestion API, PostgreSQL (TimescaleDB) e testes de integração com Docker Compose.
 - [ ] **Fase 2: Tempo Real:** Ingestão desacoplada por Redis Streams, workers de regras e dashboard ao vivo com replay de voo.
 - [ ] **Fase 3: Cloud & Observabilidade:** Deploy com Terraform (AWS), instrumentação OpenTelemetry + Prometheus/Grafana e testes de carga com k6.
 - [ ] **Fase 4: IA Aplicada:** Assistente de diagnóstico com RAG e LLM analisando anomalias de voo.
 - [ ] **Fase 5: Fechamento & Segurança:** Hardening OWASP, simulação de falha controlada (post-mortem) e documentação final de métricas.
+
+---
+
+## ⚡ Quickstart / Local Development
+
+### Prerequisites
+- Node.js >= 20
+- Docker & Docker Compose
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/FelipeDorneles09/AeroStream.git
+cd AeroStream
+npm install
+```
+
+### 2. Start Infrastructure (TimescaleDB & Redis)
+```bash
+docker compose up -d
+```
+
+### 3. Run Ingestion API & Simulator
+```bash
+# Terminal 1: Ingestion API
+npm run dev:api
+
+# Terminal 2: Synthetic Fleet Simulator
+npm run dev:simulator
+```
+
+### 4. Run Test Suites
+```bash
+npm test
+```
+Interactive Swagger documentation is available at `http://localhost:3000/docs`.
 
 ---
 

@@ -1,0 +1,72 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+
+    services:
+      timescaledb:
+        image: timescale/timescaledb-ha:pg16
+        env:
+          POSTGRES_USER: aerostream
+          POSTGRES_PASSWORD: aerostream_secret
+          POSTGRES_DB: aerostream_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aerostream -d aerostream_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize Database Schema
+        run: |
+          docker cp infra/docker/init.sql $(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg16):/tmp/init.sql
+          docker exec $(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg16) psql -U aerostream -d aerostream_db -f /tmp/init.sql
+
+      - name: Typecheck / Lint
+        run: npm run lint
+
+      - name: Run Test Suites
+        run: npm test
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: aerostream
+          DB_PASSWORD: aerostream_secret
+          DB_NAME: aerostream_db
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+
+      - name: Build All Workspaces
+        run: npm run build

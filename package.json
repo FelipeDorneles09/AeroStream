@@ -1,0 +1,28 @@
+{
+  "name": "aerostream",
+  "version": "0.1.0",
+  "private": true,
+  "description": "High-Throughput Real-Time Drone Fleet Telemetry & Anomaly Diagnostics Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces build",
+    "test": "npm run --workspaces test",
+    "lint": "npm run --workspaces lint",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "dev:api": "npm run dev --workspace=@aerostream/api",
+    "dev:simulator": "npm run dev --workspace=@aerostream/simulator"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
