@@ -151,6 +151,7 @@ Comprehensive technical specifications and decisions are documented under [`docs
   - [ADR-0001: Record Architecture Decisions](./docs/adr/0001-record-architecture-decisions.md)
   - [ADR-0002: Real-Time Telemetry Pipeline & Storage Strategy](./docs/adr/0002-telemetry-pipeline-and-storage.md)
   - [ADR-0003: Redis Streams Consumer Groups & Real-Time SSE Feed](./docs/adr/0003-redis-streams-consumer-groups-and-realtime-feed.md)
+  - [ADR-0004: Real-Time Geospatial Dashboard Architecture (Leaflet & SSE)](./docs/adr/0004-realtime-geospatial-dashboard-leaflet-sse.md)
 
 ---
 

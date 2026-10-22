@@ -85,8 +85,10 @@ export function useLiveTelemetry() {
             const initialMap: Record<string, DroneTelemetry> = {};
             const initialPaths: Record<string, [number, number][]> = {};
             for (const drone of body.drones) {
-              initialMap[drone.droneId] = drone;
-              initialPaths[drone.droneId] = [[drone.location.latitude, drone.location.longitude]];
+              if (drone && drone.droneId && drone.location && typeof drone.location.latitude === 'number') {
+                initialMap[drone.droneId] = drone;
+                initialPaths[drone.droneId] = [[drone.location.latitude, drone.location.longitude]];
+              }
             }
             setDrones(initialMap);
             setFlightPaths(initialPaths);
@@ -110,7 +112,21 @@ export function useLiveTelemetry() {
 
       const handleTelemetryMessage = (raw: string) => {
         try {
-          const telemetry: DroneTelemetry = JSON.parse(raw);
+          const parsed = JSON.parse(raw);
+
+          // Support both enveloped SSE { type: 'TELEMETRY_UPDATE', payload: ... } and raw DroneTelemetry
+          const telemetry: DroneTelemetry | null =
+            parsed?.type === 'TELEMETRY_UPDATE' && parsed?.payload
+              ? parsed.payload
+              : parsed?.droneId && parsed?.location
+              ? parsed
+              : null;
+
+          // Ignore non-telemetry events (e.g. HANDSHAKE, heartbeat pings)
+          if (!telemetry || !telemetry.droneId || !telemetry.location || typeof telemetry.location.latitude !== 'number') {
+            return;
+          }
+
           eventCounterRef.current += 1;
 
           setDrones((prev) => ({
@@ -120,7 +136,10 @@ export function useLiveTelemetry() {
 
           setFlightPaths((prev) => {
             const existing = prev[telemetry.droneId] || [];
-            const updated = [...existing, [telemetry.location.latitude, telemetry.location.longitude] as [number, number]];
+            const updated = [
+              ...existing,
+              [telemetry.location.latitude, telemetry.location.longitude] as [number, number],
+            ];
             // Keep last 40 breadcrumbs
             return {
               ...prev,

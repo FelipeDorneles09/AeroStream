@@ -114,9 +114,9 @@ flowchart LR
 
 O maior risco é o escopo: um projeto tão amplo pode ficar pela metade. Se o tempo for curto, priorize as fases 1 a 3 do roadmap, que já cobrem cloud, system design e testes, e deixe a IA como a última camada.
 
-**Próximos Passos:**
-- [ ] Decidir entre a ideia principal e uma das alternativas
-- [ ] Detalhar stack, estrutura de pastas e entregáveis de cada fase
-- [ ] Escrever o primeiro ADR (escolha do banco e da fila)
-- [ ] Combinar com alguém a revisão dos pull requests
-- [ ] Preparar os bullets de currículo que o projeto vai gerar
+**Status do Roadmap:**
+- [x] **Fase 1: Fundação** — Simulador de frota autônoma, Ingestão Fastify, TimescaleDB, testes automatizados e Docker Compose.
+- [x] **Fase 2: Tempo Real** — Buffer assíncrono via Redis Streams + Consumer Groups, Workers com cache geoespacial e Dashboard tático com radar Leaflet e Server-Sent Events (SSE).
+- [ ] **Fase 3: Observabilidade & Teste de Carga** — Métricas Prometheus, Dashboards Grafana, Tracing OpenTelemetry e teste de estresse com k6.
+- [ ] **Fase 4: IA & Diagnóstico de Missão** — Assistente de IA com RAG para análise de anomalias de voo.
+- [ ] **Fase 5: Cloud & Infraestrutura** — Deploy automatizado com Terraform na AWS (ECS Fargate/EKS) e CI/CD.
