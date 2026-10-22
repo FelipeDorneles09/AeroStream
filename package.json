@@ -18,7 +18,8 @@
     "docker:logs": "docker compose logs -f",
     "dev:api": "npm run dev --workspace=@aerostream/api",
     "dev:simulator": "npm run dev --workspace=@aerostream/simulator",
-    "dev:workers": "npm run dev --workspace=@aerostream/workers"
+    "dev:workers": "npm run dev --workspace=@aerostream/workers",
+    "dev:web": "npm run dev --workspace=@aerostream/web"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
