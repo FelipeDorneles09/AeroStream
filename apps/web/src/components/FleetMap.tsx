@@ -19,14 +19,16 @@ export function FleetMap({
 }: FleetMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
   const polylineRef = useRef<L.Polyline | null>(null);
+  const [mapMode, setMapMode] = React.useState<'radar' | 'satellite'>('radar');
 
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Default center (e.g., São Paulo / standard airspace test zone)
+    // Default center (e.g., São Paulo airspace test zone)
     const map = L.map(mapContainerRef.current, {
       center: [-23.5505, -46.6333],
       zoom: 13,
@@ -35,13 +37,14 @@ export function FleetMap({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // CartoDB Dark Matter High-Def Dark Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+    // Initial base tile layer (OpenStreetMap Radar)
+    const baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
-      subdomains: 'abcd',
+      className: 'radar-tiles',
     }).addTo(map);
 
+    tileLayerRef.current = baseLayer;
     mapInstanceRef.current = map;
 
     return () => {
@@ -49,6 +52,35 @@ export function FleetMap({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Handle Map Mode Toggle (Radar vs Satellite)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    if (mapMode === 'satellite') {
+      tileLayerRef.current = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution: '&copy; Esri &copy; OpenStreetMap contributors',
+          maxZoom: 19,
+        }
+      ).addTo(map);
+    } else {
+      tileLayerRef.current = L.tileLayer(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19,
+          className: 'radar-tiles',
+        }
+      ).addTo(map);
+    }
+  }, [mapMode]);
 
   // Update Markers when drones change
   useEffect(() => {
@@ -177,7 +209,11 @@ export function FleetMap({
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '520px', borderRadius: '12px', overflow: 'hidden' }}>
-      <div ref={mapContainerRef} style={{ width: '100%', height: '100%', minHeight: '520px' }} />
+      <div
+        ref={mapContainerRef}
+        className={mapMode === 'radar' ? 'radar-mode' : ''}
+        style={{ width: '100%', height: '100%', minHeight: '520px' }}
+      />
 
       {/* Map Overlay Controls */}
       <div
@@ -190,6 +226,26 @@ export function FleetMap({
           gap: '8px',
         }}
       >
+        <button
+          onClick={() => setMapMode(mapMode === 'radar' ? 'satellite' : 'radar')}
+          style={{
+            background: 'rgba(13, 18, 31, 0.85)',
+            color: 'var(--text-main)',
+            border: '1px solid var(--border-card)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-cyan)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-card)')}
+        >
+          {mapMode === 'radar' ? '🛰️ Satellite View' : '📡 Tactical Radar'}
+        </button>
+
         <button
           onClick={fitFleetBounds}
           style={{
