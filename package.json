@@ -10,8 +10,8 @@
   "scripts": {
     "build:packages": "npm run --workspace=@aerostream/shared-types build",
     "build": "npm run build:packages && npm run --workspaces --if-present build",
-    "test": "npm run --workspaces test",
-    "lint": "npm run --workspaces lint",
+    "test": "npm run --workspaces --if-present test",
+    "lint": "npm run --workspaces --if-present lint",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

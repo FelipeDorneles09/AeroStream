@@ -72,9 +72,9 @@ describe('AeroStream Ingestion API Integration Tests', () => {
     expect(body.streamId).toBeDefined();
     expect(body.streamId).toMatch(/^\d+-\d+$/);
 
-    // Verify Redis Stream holds the published event
-    const streamEntries = await redisClient.xrevrange(TELEMETRY_STREAM_KEY, '+', '-', 'COUNT', 1);
-    expect(streamEntries.length).toBeGreaterThanOrEqual(1);
+    // Verify Redis Stream holds the published event (exact lookup by ID)
+    const streamEntries = await redisClient.xrange(TELEMETRY_STREAM_KEY, body.streamId, body.streamId);
+    expect(streamEntries.length).toBe(1);
     expect(streamEntries[0][0]).toBe(body.streamId);
   });
 
