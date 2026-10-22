@@ -7,6 +7,7 @@ import {
 } from '@aerostream/shared-types';
 import { TelemetryRepository } from '../repositories/telemetry.repository.js';
 import { publishToStream, publishBatchToStream } from '../queue/redis-stream.js';
+import { telemetryBroadcaster } from '../sse/broadcaster.js';
 
 export class TelemetryService {
   constructor(private readonly repository = new TelemetryRepository()) {}
@@ -60,6 +61,9 @@ export class TelemetryService {
 
     // 2. Persist to TimescaleDB
     await this.repository.insertTelemetry(enrichedRecord);
+
+    // 3. Push real-time SSE update to connected web dashboards
+    telemetryBroadcaster.broadcastTelemetry(enrichedRecord);
 
     return { success: true, data: enrichedRecord, streamId };
   }

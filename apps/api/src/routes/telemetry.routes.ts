@@ -116,4 +116,19 @@ export async function telemetryRoutes(fastify: FastifyInstance) {
       drones: nearbyDroneIds
     });
   });
+
+  // GET /api/v1/telemetry/live/stream (Server-Sent Events real-time feed)
+  fastify.get('/api/v1/telemetry/live/stream', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const { telemetryBroadcaster } = await import('../sse/broadcaster.js');
+
+    reply.raw.setHeader('Content-Type', 'text/event-stream');
+    reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
+    reply.raw.setHeader('Connection', 'keep-alive');
+    reply.raw.setHeader('Access-Control-Allow-Origin', '*');
+
+    telemetryBroadcaster.addClient(reply.raw);
+
+    // Keep connection open for continuous streaming
+    return new Promise(() => {});
+  });
 }
