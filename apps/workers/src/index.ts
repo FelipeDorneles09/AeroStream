@@ -1,6 +1,7 @@
 import { Redis } from 'ioredis';
 import { config } from './config/env.js';
 import { StreamConsumer } from './consumer/stream-consumer.js';
+import { FleetCacheService } from './cache/fleet-cache.js';
 import { DroneTelemetry } from '@aerostream/shared-types';
 
 async function bootstrap() {
@@ -12,6 +13,8 @@ async function bootstrap() {
     password: config.redis.password,
     maxRetriesPerRequest: null
   });
+
+  const fleetCache = new FleetCacheService(redis);
 
   const consumer = new StreamConsumer({
     redisClient: redis,
@@ -34,6 +37,9 @@ async function bootstrap() {
   process.on('SIGTERM', shutdown);
 
   await consumer.start(async (telemetry: DroneTelemetry, msgId: string) => {
+    // 1. Update hot state cache and geospatial index
+    await fleetCache.updateDroneHotState(telemetry);
+
     processedCount++;
     if (processedCount % 10 === 0 || (telemetry.activeAlerts && telemetry.activeAlerts.length > 0)) {
       console.log(

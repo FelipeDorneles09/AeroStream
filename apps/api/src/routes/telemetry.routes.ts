@@ -76,4 +76,44 @@ export async function telemetryRoutes(fastify: FastifyInstance) {
       history
     });
   });
+
+  // GET /api/v1/fleet/live (Redis Hot State Cache)
+  fastify.get('/api/v1/fleet/live', async (_request, reply: FastifyReply) => {
+    const { FleetCacheService } = await import('../cache/fleet-cache.js');
+    const fleetCache = new FleetCacheService();
+    const liveFleet = await fleetCache.getAllActiveDrones();
+    return reply.status(200).send({
+      totalActive: liveFleet.length,
+      timestamp: new Date().toISOString(),
+      drones: liveFleet
+    });
+  });
+
+  // GET /api/v1/fleet/nearby (Redis Geospatial Search)
+  fastify.get('/api/v1/fleet/nearby', async (request: FastifyRequest<{ Querystring: { lat: string; lon: string; radiusKm?: string } }>, reply: FastifyReply) => {
+    const { lat, lon, radiusKm } = request.query;
+    if (!lat || !lon) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Query parameters "lat" and "lon" are required'
+      });
+    }
+
+    const { FleetCacheService } = await import('../cache/fleet-cache.js');
+    const fleetCache = new FleetCacheService();
+    const nearbyDroneIds = await fleetCache.findNearbyDrones(
+      parseFloat(lat),
+      parseFloat(lon),
+      radiusKm ? parseFloat(radiusKm) : 10
+    );
+
+    return reply.status(200).send({
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lon),
+      radiusKm: radiusKm ? parseFloat(radiusKm) : 10,
+      count: nearbyDroneIds.length,
+      drones: nearbyDroneIds
+    });
+  });
 }

@@ -141,4 +141,16 @@ describe('AeroStream Ingestion API Integration Tests', () => {
     expect(body.count).toBeGreaterThanOrEqual(1);
     expect(Array.isArray(body.history)).toBe(true);
   });
+
+  it('GET /api/v1/fleet/live should return live fleet array from cache', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/fleet/live'
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload);
+    expect(body.totalActive).toBeDefined();
+    expect(Array.isArray(body.drones)).toBe(true);
+  });
 });
