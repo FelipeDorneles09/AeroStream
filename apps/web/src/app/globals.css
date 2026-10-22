@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'leaflet/dist/leaflet.css';
 
 :root {
   --bg-primary: #07090e;
@@ -64,21 +65,72 @@ code, pre, .font-mono {
   animation: pulse-glow 2s infinite;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Leaflet custom dark theme & aerospace radar styling */
+.leaflet-container {
+  background-color: #05070a !important;
+  font-family: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+.leaflet-popup-content-wrapper {
+  background: rgba(13, 18, 31, 0.95) !important;
+  color: var(--text-main) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-active);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+.leaflet-popup-tip {
+  background: rgba(13, 18, 31, 0.95) !important;
+  border-top: 1px solid var(--border-active);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+.leaflet-bar a {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-bottom: 1px solid var(--border-card) !important;
 }
+
+.leaflet-bar a:hover {
+  background-color: rgba(56, 189, 248, 0.2) !important;
+  color: var(--accent-cyan) !important;
+}
+
+/* Custom drone icon container */
+.drone-marker-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.4s ease-out;
+}
+
+.drone-marker-halo {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px dashed rgba(56, 189, 248, 0.5);
+  animation: radar-spin 6s linear infinite;
+  pointer-events: none;
+}
+
+.drone-marker-halo.warning {
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.drone-marker-halo.critical {
+  border-color: rgba(239, 68, 68, 0.9);
+  animation: pulse-glow 1s infinite;
+}
+
+@keyframes radar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

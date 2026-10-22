@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@aerostream/shared-types": "*",
+    "@types/leaflet": "^1.9.22",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.469.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
