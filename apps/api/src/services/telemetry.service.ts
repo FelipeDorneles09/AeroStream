@@ -6,6 +6,7 @@ import {
   IngestionResponse 
 } from '@aerostream/shared-types';
 import { TelemetryRepository } from '../repositories/telemetry.repository.js';
+import { publishToStream, publishBatchToStream } from '../queue/redis-stream.js';
 
 export class TelemetryService {
   constructor(private readonly repository = new TelemetryRepository()) {}
@@ -40,23 +41,33 @@ export class TelemetryService {
   }
 
   /**
-   * Process a single incoming telemetry event
+   * Process a single incoming telemetry event and buffers it to Redis Stream
    */
-  async processTelemetry(payload: unknown): Promise<{ success: boolean; data: DroneTelemetry }> {
+  async processTelemetry(payload: unknown): Promise<{ success: boolean; data: DroneTelemetry; streamId?: string }> {
     const parsed = DroneTelemetrySchema.parse(payload);
     const enrichedRecord: DroneTelemetry = {
       ...parsed,
       activeAlerts: this.evaluateSafetyRules(parsed)
     };
 
+    // 1. Buffer to Redis Stream for real-time decoupling
+    let streamId: string | undefined;
+    try {
+      streamId = await publishToStream(enrichedRecord);
+    } catch (streamErr) {
+      console.warn('[TelemetryService] Failed to publish to Redis Stream, fallback to DB only:', streamErr);
+    }
+
+    // 2. Persist to TimescaleDB
     await this.repository.insertTelemetry(enrichedRecord);
-    return { success: true, data: enrichedRecord };
+
+    return { success: true, data: enrichedRecord, streamId };
   }
 
   /**
-   * Process a batch of telemetry packets
+   * Process a batch of telemetry packets and buffers them to Redis Stream
    */
-  async processBatch(payload: unknown): Promise<IngestionResponse> {
+  async processBatch(payload: unknown): Promise<IngestionResponse & { bufferedToStream: boolean }> {
     const parsed: BatchTelemetry = BatchTelemetrySchema.parse(payload);
     
     const enrichedRecords = parsed.records.map((record: DroneTelemetry) => ({
@@ -64,12 +75,22 @@ export class TelemetryService {
       activeAlerts: this.evaluateSafetyRules(record)
     }));
 
+    // Buffer batch to Redis Stream
+    let bufferedToStream = false;
+    try {
+      await publishBatchToStream(enrichedRecords);
+      bufferedToStream = true;
+    } catch (streamErr) {
+      console.warn('[TelemetryService] Failed to pipeline batch to Redis Stream:', streamErr);
+    }
+
     const insertedCount = await this.repository.insertBatch(enrichedRecords);
 
     return {
       success: true,
       ingestedCount: insertedCount,
-      processedAt: new Date().toISOString()
+      processedAt: new Date().toISOString(),
+      bufferedToStream
     };
   }
 

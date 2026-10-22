@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from './app.js';
 import { dbPool } from './db/timescale.js';
+import { redisClient, TELEMETRY_STREAM_KEY } from './queue/redis-stream.js';
 import { FastifyInstance } from 'fastify';
 
 describe('AeroStream Ingestion API Integration Tests', () => {
@@ -14,9 +15,10 @@ describe('AeroStream Ingestion API Integration Tests', () => {
   afterAll(async () => {
     await app.close();
     await dbPool.end();
+    await redisClient.quit();
   });
 
-  it('GET /health should return 200 and healthy database connectivity', async () => {
+  it('GET /health should return 200 and healthy database and redis connectivity', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/health'
@@ -26,6 +28,7 @@ describe('AeroStream Ingestion API Integration Tests', () => {
     const body = JSON.parse(response.payload);
     expect(body.status).toBe('UP');
     expect(body.checks.database).toBe('HEALTHY');
+    expect(body.checks.redis).toBe('HEALTHY');
   });
 
   it('POST /api/v1/telemetry should ingest valid telemetry and persist to TimescaleDB', async () => {
@@ -66,6 +69,13 @@ describe('AeroStream Ingestion API Integration Tests', () => {
     const body = JSON.parse(response.payload);
     expect(body.success).toBe(true);
     expect(body.data.droneId).toBe('DRONE-ALPHA-01');
+    expect(body.streamId).toBeDefined();
+    expect(body.streamId).toMatch(/^\d+-\d+$/);
+
+    // Verify Redis Stream holds the published event
+    const streamEntries = await redisClient.xrevrange(TELEMETRY_STREAM_KEY, '+', '-', 'COUNT', 1);
+    expect(streamEntries.length).toBeGreaterThanOrEqual(1);
+    expect(streamEntries[0][0]).toBe(body.streamId);
   });
 
   it('POST /api/v1/telemetry should trigger LOW_SATELLITE_COUNT alert when satellites < 20', async () => {
