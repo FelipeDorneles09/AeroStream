@@ -116,29 +116,41 @@ npm install
 docker compose up -d
 ```
 
-### 3. Run Ingestion API & Simulator
+### 3. Run Platform Services
 ```bash
-# Terminal 1: Ingestion API
+# Terminal 1: Ingestion API (Port 3001)
 npm run dev:api
 
-# Terminal 2: Synthetic Fleet Simulator
+# Terminal 2: Stream Workers (Consumer Group)
+npm run dev:workers
+
+# Terminal 3: Synthetic Fleet Simulator
 npm run dev:simulator
+
+# Terminal 4: Web Dashboard (Port 3002)
+npm run dev:web
 ```
 
 ### 4. Run Test Suites
 ```bash
 npm test
 ```
-Interactive Swagger documentation is available at `http://localhost:3001/docs`.
+- Interactive Swagger documentation: `http://localhost:3001/docs`
+- Live Fleet Dashboard: `http://localhost:3002`
 
 ---
 
-## 📖 Architecture Decision Records (ADRs)
+## 📚 Technical Documentation & ADRs
 
-Key architectural choices are documented under [`docs/adr/`](./docs/adr/):
+Comprehensive technical specifications and decisions are documented under [`docs/`](./docs/):
 
-- [ADR-0001: Record Architecture Decisions](./docs/adr/0001-record-architecture-decisions.md)
-- [ADR-0002: Real-Time Telemetry Pipeline & Storage Strategy](./docs/adr/0002-telemetry-pipeline-and-storage.md)
+- **Architecture Overviews:**
+  - [System Architecture & Sequence Flow](./docs/architecture/system-overview.md)
+  - [Data Contracts & Schema Specification](./docs/architecture/data-contracts.md)
+- **Architecture Decision Records (ADRs):**
+  - [ADR-0001: Record Architecture Decisions](./docs/adr/0001-record-architecture-decisions.md)
+  - [ADR-0002: Real-Time Telemetry Pipeline & Storage Strategy](./docs/adr/0002-telemetry-pipeline-and-storage.md)
+  - [ADR-0003: Redis Streams Consumer Groups & Real-Time SSE Feed](./docs/adr/0003-redis-streams-consumer-groups-and-realtime-feed.md)
 
 ---
 
