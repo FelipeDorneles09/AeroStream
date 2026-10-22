@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
 import { redisClient } from '../queue/redis-stream.js';
+import { DroneTelemetry } from '@aerostream/shared-types';
 
 export class FleetCacheService {
   constructor(private readonly redis: Redis = redisClient) {}
@@ -7,7 +8,7 @@ export class FleetCacheService {
   /**
    * Retrieves live state for all active drones in the fleet
    */
-  async getAllActiveDrones(): Promise<Array<Record<string, string>>> {
+  async getAllActiveDrones(): Promise<Array<DroneTelemetry>> {
     const droneIds = await this.redis.smembers('fleet:active_drones');
     if (droneIds.length === 0) return [];
 
@@ -17,12 +18,38 @@ export class FleetCacheService {
     }
 
     const results = await pipeline.exec();
-    const fleet: Array<Record<string, string>> = [];
+    const fleet: Array<DroneTelemetry> = [];
 
     if (results) {
       for (const [err, state] of results) {
         if (!err && state && Object.keys(state as object).length > 0) {
-          fleet.push(state as Record<string, string>);
+          const s = state as Record<string, string>;
+          fleet.push({
+            droneId: s.droneId,
+            timestamp: s.lastSeenAt || new Date().toISOString(),
+            status: (s.status as any) || 'IDLE',
+            location: {
+              latitude: parseFloat(s.latitude || '0'),
+              longitude: parseFloat(s.longitude || '0'),
+              altitudeMeters: parseFloat(s.altitudeMeters || '0'),
+            },
+            velocity: {
+              speedKmh: parseFloat(s.speedKmh || '0'),
+              headingDegrees: parseFloat(s.headingDegrees || '0'),
+            },
+            battery: {
+              percentage: parseFloat(s.batteryPercentage || '100'),
+              voltage: parseFloat(s.batteryVoltage || '24'),
+              temperatureCelsius: parseFloat(s.batteryTemperature || '25'),
+            },
+            sensors: {
+              satelliteCount: parseInt(s.satelliteCount || '0', 10),
+              gpsFix: (s.gpsFix as any) || '3D',
+              imuHealth: s.imuHealth === 'true',
+              signalQualityPercentage: 98,
+            },
+            activeAlerts: s.activeAlerts ? JSON.parse(s.activeAlerts) : [],
+          });
         }
       }
     }
