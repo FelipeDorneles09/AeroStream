@@ -67,11 +67,11 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/aerostream-mission-control.json
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/aerostream-mission-control.json
     volumes:
       - ./infra/docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./infra/docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./infra/docker/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+      - ./infra/docker/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
