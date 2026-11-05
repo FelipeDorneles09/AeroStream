@@ -107,7 +107,10 @@ export default function () {
     const records = Array.from({ length: batchSize }, () =>
       generateTelemetryPoint(droneIndex),
     );
-    const payload = JSON.stringify({ records });
+    const payload = JSON.stringify({
+      sentAt: new Date().toISOString(),
+      records,
+    });
 
     const res = http.post(
       `${BASE_URL}/api/v1/telemetry/batch`,
