@@ -1,21 +1,21 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * GPS Fix Quality
  */
-export const GpsFixTypeSchema = z.enum(['NO_FIX', '2D', '3D', 'RTK']);
+export const GpsFixTypeSchema = z.enum(["NO_FIX", "2D", "3D", "RTK"]);
 export type GpsFixType = z.infer<typeof GpsFixTypeSchema>;
 
 /**
  * Operational Status of an autonomous drone
  */
 export const DroneStatusSchema = z.enum([
-  'IDLE',
-  'PREFLIGHT',
-  'IN_FLIGHT',
-  'RETURNING_TO_BASE',
-  'LANDED',
-  'EMERGENCY_LANDING'
+  "IDLE",
+  "PREFLIGHT",
+  "IN_FLIGHT",
+  "RETURNING_TO_BASE",
+  "LANDED",
+  "EMERGENCY_LANDING",
 ]);
 export type DroneStatus = z.infer<typeof DroneStatusSchema>;
 
@@ -25,7 +25,7 @@ export type DroneStatus = z.infer<typeof DroneStatusSchema>;
 export const LocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  altitudeMeters: z.number().min(-100).max(10000)
+  altitudeMeters: z.number().min(-100).max(10000),
 });
 export type Location = z.infer<typeof LocationSchema>;
 
@@ -34,7 +34,7 @@ export type Location = z.infer<typeof LocationSchema>;
  */
 export const VelocitySchema = z.object({
   speedKmh: z.number().min(0).max(300),
-  headingDegrees: z.number().min(0).max(360)
+  headingDegrees: z.number().min(0).max(360),
 });
 export type Velocity = z.infer<typeof VelocitySchema>;
 
@@ -44,7 +44,7 @@ export type Velocity = z.infer<typeof VelocitySchema>;
 export const BatteryMetricsSchema = z.object({
   percentage: z.number().min(0).max(100),
   voltage: z.number().min(0).max(60),
-  temperatureCelsius: z.number().min(-40).max(90)
+  temperatureCelsius: z.number().min(-40).max(90),
 });
 export type BatteryMetrics = z.infer<typeof BatteryMetricsSchema>;
 
@@ -55,7 +55,7 @@ export const SensorDiagnosticsSchema = z.object({
   satelliteCount: z.number().int().min(0).max(64),
   gpsFix: GpsFixTypeSchema,
   imuHealth: z.boolean(),
-  signalQualityPercentage: z.number().min(0).max(100)
+  signalQualityPercentage: z.number().min(0).max(100),
 });
 export type SensorDiagnostics = z.infer<typeof SensorDiagnosticsSchema>;
 
@@ -65,13 +65,15 @@ export type SensorDiagnostics = z.infer<typeof SensorDiagnosticsSchema>;
 export const DroneTelemetrySchema = z.object({
   droneId: z.string().min(3).max(64),
   missionId: z.string().uuid().optional(),
-  timestamp: z.string().datetime({ message: 'Must be a valid ISO 8601 UTC timestamp' }),
+  timestamp: z
+    .string()
+    .datetime({ message: "Must be a valid ISO 8601 UTC timestamp" }),
   status: DroneStatusSchema,
   location: LocationSchema,
   velocity: VelocitySchema,
   battery: BatteryMetricsSchema,
   sensors: SensorDiagnosticsSchema,
-  activeAlerts: z.array(z.string()).default([])
+  activeAlerts: z.array(z.string()).default([]),
 });
 export type DroneTelemetry = z.infer<typeof DroneTelemetrySchema>;
 
@@ -81,7 +83,7 @@ export type DroneTelemetry = z.infer<typeof DroneTelemetrySchema>;
 export const BatchTelemetrySchema = z.object({
   batchId: z.string().uuid().optional(),
   sentAt: z.string().datetime(),
-  records: z.array(DroneTelemetrySchema).min(1).max(500)
+  records: z.array(DroneTelemetrySchema).min(1).max(500),
 });
 export type BatchTelemetry = z.infer<typeof BatchTelemetrySchema>;
 

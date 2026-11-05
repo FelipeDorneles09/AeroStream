@@ -1,5 +1,5 @@
-import { Redis } from 'ioredis';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { Redis } from "ioredis";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
 export interface StreamConsumerOptions {
   redisClient: Redis;
@@ -21,9 +21,11 @@ export class StreamConsumer {
 
   constructor(options: StreamConsumerOptions) {
     this.redis = options.redisClient;
-    this.streamKey = options.streamKey || 'telemetry:stream';
-    this.groupName = options.groupName || 'telemetry-processors';
-    this.consumerName = options.consumerName || `worker-${process.pid}-${Math.random().toString(36).slice(2, 7)}`;
+    this.streamKey = options.streamKey || "telemetry:stream";
+    this.groupName = options.groupName || "telemetry-processors";
+    this.consumerName =
+      options.consumerName ||
+      `worker-${process.pid}-${Math.random().toString(36).slice(2, 7)}`;
     this.batchSize = options.batchSize || 50;
     this.blockTimeoutMs = options.blockTimeoutMs || 2000;
   }
@@ -34,10 +36,18 @@ export class StreamConsumer {
   async setupGroup(): Promise<void> {
     try {
       // Create group starting at newest ($) or beginning (0)
-      await this.redis.xgroup('CREATE', this.streamKey, this.groupName, '$', 'MKSTREAM');
-      console.log(`[StreamConsumer] Created Consumer Group "${this.groupName}" on stream "${this.streamKey}"`);
+      await this.redis.xgroup(
+        "CREATE",
+        this.streamKey,
+        this.groupName,
+        "$",
+        "MKSTREAM",
+      );
+      console.log(
+        `[StreamConsumer] Created Consumer Group "${this.groupName}" on stream "${this.streamKey}"`,
+      );
     } catch (err: any) {
-      if (err.message.includes('BUSYGROUP')) {
+      if (err.message.includes("BUSYGROUP")) {
         // Group already exists, which is normal across restarts
         return;
       }
@@ -49,20 +59,20 @@ export class StreamConsumer {
    * Reads and processes one batch from the consumer group
    */
   async pollBatch(
-    handler: (telemetry: DroneTelemetry, msgId: string) => Promise<void>
+    handler: (telemetry: DroneTelemetry, msgId: string) => Promise<void>,
   ): Promise<number> {
     // XREADGROUP GROUP group consumer [COUNT count] [BLOCK milliseconds] STREAMS key >
     const response = await this.redis.xreadgroup(
-      'GROUP',
+      "GROUP",
       this.groupName,
       this.consumerName,
-      'COUNT',
+      "COUNT",
       this.batchSize,
-      'BLOCK',
+      "BLOCK",
       this.blockTimeoutMs,
-      'STREAMS',
+      "STREAMS",
       this.streamKey,
-      '>'
+      ">",
     );
 
     if (!response || response.length === 0) {
@@ -74,9 +84,9 @@ export class StreamConsumer {
 
     for (const [msgId, fields] of entries) {
       try {
-        let payloadStr = '';
+        let payloadStr = "";
         for (let i = 0; i < fields.length; i += 2) {
-          if (fields[i] === 'payload') {
+          if (fields[i] === "payload") {
             payloadStr = fields[i + 1];
             break;
           }
@@ -91,7 +101,10 @@ export class StreamConsumer {
         await this.redis.xack(this.streamKey, this.groupName, msgId);
         processedCount++;
       } catch (err: any) {
-        console.error(`[StreamConsumer] Error processing message ${msgId}:`, err.message);
+        console.error(
+          `[StreamConsumer] Error processing message ${msgId}:`,
+          err.message,
+        );
       }
     }
 
@@ -101,17 +114,21 @@ export class StreamConsumer {
   /**
    * Starts continuous worker polling loop
    */
-  async start(handler: (telemetry: DroneTelemetry, msgId: string) => Promise<void>): Promise<void> {
+  async start(
+    handler: (telemetry: DroneTelemetry, msgId: string) => Promise<void>,
+  ): Promise<void> {
     await this.setupGroup();
     this.isRunning = true;
-    console.log(`🚀 [StreamConsumer] Worker "${this.consumerName}" listening for stream events...`);
+    console.log(
+      `🚀 [StreamConsumer] Worker "${this.consumerName}" listening for stream events...`,
+    );
 
     while (this.isRunning) {
       try {
         await this.pollBatch(handler);
       } catch (err: any) {
         if (!this.isRunning) break;
-        console.error('[StreamConsumer] Loop polling error:', err.message);
+        console.error("[StreamConsumer] Loop polling error:", err.message);
         await new Promise((r) => setTimeout(r, 1000));
       }
     }
@@ -122,6 +139,8 @@ export class StreamConsumer {
    */
   stop(): void {
     this.isRunning = false;
-    console.log(`🛑 [StreamConsumer] Worker "${this.consumerName}" stopping...`);
+    console.log(
+      `🛑 [StreamConsumer] Worker "${this.consumerName}" stopping...`,
+    );
   }
 }

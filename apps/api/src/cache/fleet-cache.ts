@@ -1,6 +1,6 @@
-import { Redis } from 'ioredis';
-import { redisClient } from '../queue/redis-stream.js';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { Redis } from "ioredis";
+import { redisClient } from "../queue/redis-stream.js";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
 export class FleetCacheService {
   constructor(private readonly redis: Redis = redisClient) {}
@@ -9,7 +9,7 @@ export class FleetCacheService {
    * Retrieves live state for all active drones in the fleet
    */
   async getAllActiveDrones(): Promise<Array<DroneTelemetry>> {
-    const droneIds = await this.redis.smembers('fleet:active_drones');
+    const droneIds = await this.redis.smembers("fleet:active_drones");
     if (droneIds.length === 0) return [];
 
     const pipeline = this.redis.pipeline();
@@ -27,25 +27,25 @@ export class FleetCacheService {
           fleet.push({
             droneId: s.droneId,
             timestamp: s.lastSeenAt || new Date().toISOString(),
-            status: (s.status as any) || 'IDLE',
+            status: (s.status as any) || "IDLE",
             location: {
-              latitude: parseFloat(s.latitude || '0'),
-              longitude: parseFloat(s.longitude || '0'),
-              altitudeMeters: parseFloat(s.altitudeMeters || '0'),
+              latitude: parseFloat(s.latitude || "0"),
+              longitude: parseFloat(s.longitude || "0"),
+              altitudeMeters: parseFloat(s.altitudeMeters || "0"),
             },
             velocity: {
-              speedKmh: parseFloat(s.speedKmh || '0'),
-              headingDegrees: parseFloat(s.headingDegrees || '0'),
+              speedKmh: parseFloat(s.speedKmh || "0"),
+              headingDegrees: parseFloat(s.headingDegrees || "0"),
             },
             battery: {
-              percentage: parseFloat(s.batteryPercentage || '100'),
-              voltage: parseFloat(s.batteryVoltage || '24'),
-              temperatureCelsius: parseFloat(s.batteryTemperature || '25'),
+              percentage: parseFloat(s.batteryPercentage || "100"),
+              voltage: parseFloat(s.batteryVoltage || "24"),
+              temperatureCelsius: parseFloat(s.batteryTemperature || "25"),
             },
             sensors: {
-              satelliteCount: parseInt(s.satelliteCount || '0', 10),
-              gpsFix: (s.gpsFix as any) || '3D',
-              imuHealth: s.imuHealth === 'true',
+              satelliteCount: parseInt(s.satelliteCount || "0", 10),
+              gpsFix: (s.gpsFix as any) || "3D",
+              imuHealth: s.imuHealth === "true",
               signalQualityPercentage: 98,
             },
             activeAlerts: s.activeAlerts ? JSON.parse(s.activeAlerts) : [],
@@ -60,15 +60,19 @@ export class FleetCacheService {
   /**
    * Finds drones within radiusKm from a given GPS coordinate using Redis Geospatial search
    */
-  async findNearbyDrones(latitude: number, longitude: number, radiusKm: number): Promise<string[]> {
+  async findNearbyDrones(
+    latitude: number,
+    longitude: number,
+    radiusKm: number,
+  ): Promise<string[]> {
     const results = await this.redis.geosearch(
-      'fleet:geopos',
-      'FROMLONLAT',
+      "fleet:geopos",
+      "FROMLONLAT",
       longitude,
       latitude,
-      'BYRADIUS',
+      "BYRADIUS",
       radiusKm,
-      'km'
+      "km",
     );
     return (results as string[]) || [];
   }

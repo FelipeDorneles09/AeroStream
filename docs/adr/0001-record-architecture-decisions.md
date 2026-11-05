@@ -17,6 +17,7 @@ We will use **Architecture Decision Records (ADR)** based on Michael Nygard's fo
 `docs/adr/NNNN-[short-title].md`
 
 Each record will contain:
+
 1. **Title and Number**
 2. **Status:** Proposed, Accepted, Deprecated, or Superseded
 3. **Context:** What is the problem being solved?

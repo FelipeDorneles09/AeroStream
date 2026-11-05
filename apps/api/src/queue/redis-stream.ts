@@ -1,8 +1,8 @@
-import { Redis } from 'ioredis';
-import { config } from '../config/env.js';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { Redis } from "ioredis";
+import { config } from "../config/env.js";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
-export const TELEMETRY_STREAM_KEY = 'telemetry:stream';
+export const TELEMETRY_STREAM_KEY = "telemetry:stream";
 const STREAM_MAX_LEN = 100000; // Capped stream memory boundary (approximate trimming)
 
 export const redisClient = new Redis({
@@ -14,11 +14,11 @@ export const redisClient = new Redis({
   retryStrategy(times) {
     const delay = Math.min(times * 100, 2000);
     return delay;
-  }
+  },
 });
 
-redisClient.on('error', (err) => {
-  console.error('[Redis Client Error]:', err.message);
+redisClient.on("error", (err) => {
+  console.error("[Redis Client Error]:", err.message);
 });
 
 /**
@@ -27,7 +27,7 @@ redisClient.on('error', (err) => {
 export async function checkRedisConnection(): Promise<boolean> {
   try {
     const ping = await redisClient.ping();
-    return ping === 'PONG';
+    return ping === "PONG";
   } catch {
     return false;
   }
@@ -40,18 +40,18 @@ export async function checkRedisConnection(): Promise<boolean> {
 export async function publishToStream(record: DroneTelemetry): Promise<string> {
   const streamId = await redisClient.xadd(
     TELEMETRY_STREAM_KEY,
-    'MAXLEN',
-    '~',
+    "MAXLEN",
+    "~",
     STREAM_MAX_LEN,
-    '*',
-    'droneId',
+    "*",
+    "droneId",
     record.droneId,
-    'timestamp',
+    "timestamp",
     record.timestamp,
-    'status',
+    "status",
     record.status,
-    'payload',
-    JSON.stringify(record)
+    "payload",
+    JSON.stringify(record),
   );
 
   return streamId as string;
@@ -60,7 +60,9 @@ export async function publishToStream(record: DroneTelemetry): Promise<string> {
 /**
  * Publishes multiple telemetry packets in a single pipelined round-trip
  */
-export async function publishBatchToStream(records: DroneTelemetry[]): Promise<string[]> {
+export async function publishBatchToStream(
+  records: DroneTelemetry[],
+): Promise<string[]> {
   if (records.length === 0) return [];
 
   const pipeline = redisClient.pipeline();
@@ -68,18 +70,18 @@ export async function publishBatchToStream(records: DroneTelemetry[]): Promise<s
   for (const record of records) {
     pipeline.xadd(
       TELEMETRY_STREAM_KEY,
-      'MAXLEN',
-      '~',
+      "MAXLEN",
+      "~",
       STREAM_MAX_LEN,
-      '*',
-      'droneId',
+      "*",
+      "droneId",
       record.droneId,
-      'timestamp',
+      "timestamp",
       record.timestamp,
-      'status',
+      "status",
       record.status,
-      'payload',
-      JSON.stringify(record)
+      "payload",
+      JSON.stringify(record),
     );
   }
 
@@ -88,7 +90,7 @@ export async function publishBatchToStream(records: DroneTelemetry[]): Promise<s
 
   if (results) {
     for (const [err, res] of results) {
-      if (!err && typeof res === 'string') {
+      if (!err && typeof res === "string") {
         streamIds.push(res);
       }
     }

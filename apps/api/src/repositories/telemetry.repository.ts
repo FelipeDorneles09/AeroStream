@@ -1,5 +1,5 @@
-import { dbPool } from '../db/timescale.js';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { dbPool } from "../db/timescale.js";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
 export class TelemetryRepository {
   /**
@@ -32,7 +32,7 @@ export class TelemetryRepository {
       record.sensors.gpsFix,
       record.sensors.imuHealth,
       record.status,
-      record.activeAlerts
+      record.activeAlerts,
     ];
 
     await dbPool.query(query, values);
@@ -46,7 +46,7 @@ export class TelemetryRepository {
 
     const client = await dbPool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       for (const record of records) {
         const query = `
@@ -74,15 +74,15 @@ export class TelemetryRepository {
           record.sensors.gpsFix,
           record.sensors.imuHealth,
           record.status,
-          record.activeAlerts
+          record.activeAlerts,
         ];
         await client.query(query, values);
       }
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return records.length;
     } catch (err) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw err;
     } finally {
       client.release();
