@@ -1,5 +1,5 @@
-import { Redis } from 'ioredis';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { Redis } from "ioredis";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
 export class FleetCacheService {
   constructor(private readonly redis: Redis) {}
@@ -27,7 +27,7 @@ export class FleetCacheService {
       gpsFix: telemetry.sensors.gpsFix,
       imuHealth: telemetry.sensors.imuHealth.toString(),
       activeAlerts: JSON.stringify(telemetry.activeAlerts || []),
-      lastSeenAt: telemetry.timestamp
+      lastSeenAt: telemetry.timestamp,
     });
 
     // 2. Set TTL on state key (1 hour of inactivity marks stale)
@@ -35,14 +35,14 @@ export class FleetCacheService {
 
     // 3. Update Geospatial Index (GEOADD key longitude latitude member)
     pipeline.geoadd(
-      'fleet:geopos',
+      "fleet:geopos",
       telemetry.location.longitude,
       telemetry.location.latitude,
-      telemetry.droneId
+      telemetry.droneId,
     );
 
     // 4. Add to active drones set
-    pipeline.sadd('fleet:active_drones', telemetry.droneId);
+    pipeline.sadd("fleet:active_drones", telemetry.droneId);
 
     await pipeline.exec();
   }
@@ -50,7 +50,9 @@ export class FleetCacheService {
   /**
    * Retrieves the live cached state for a single drone
    */
-  async getDroneHotState(droneId: string): Promise<Record<string, string> | null> {
+  async getDroneHotState(
+    droneId: string,
+  ): Promise<Record<string, string> | null> {
     const data = await this.redis.hgetall(`drone:${droneId}:state`);
     if (!data || Object.keys(data).length === 0) return null;
     return data;
@@ -60,7 +62,7 @@ export class FleetCacheService {
    * Retrieves live state for all active drones in the fleet
    */
   async getAllActiveDrones(): Promise<Array<Record<string, string>>> {
-    const droneIds = await this.redis.smembers('fleet:active_drones');
+    const droneIds = await this.redis.smembers("fleet:active_drones");
     if (droneIds.length === 0) return [];
 
     const pipeline = this.redis.pipeline();
@@ -85,16 +87,20 @@ export class FleetCacheService {
   /**
    * Finds drones within radiusKm from a given GPS coordinate using Redis Geospatial search
    */
-  async findNearbyDrones(latitude: number, longitude: number, radiusKm: number): Promise<string[]> {
+  async findNearbyDrones(
+    latitude: number,
+    longitude: number,
+    radiusKm: number,
+  ): Promise<string[]> {
     // GEOSEARCH key FROMLONLAT longitude latitude BYRADIUS radius km
     const results = await this.redis.geosearch(
-      'fleet:geopos',
-      'FROMLONLAT',
+      "fleet:geopos",
+      "FROMLONLAT",
       longitude,
       latitude,
-      'BYRADIUS',
+      "BYRADIUS",
       radiusKm,
-      'km'
+      "km",
     );
     return (results as string[]) || [];
   }

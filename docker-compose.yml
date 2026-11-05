@@ -37,11 +37,56 @@ services:
     networks:
       - aerostream-network
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: aerostream-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - aerostream-network
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: aerostream-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/aerostream-mission-control.json
+    volumes:
+      - ./infra/docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/docker/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - aerostream-network
+
 volumes:
   timescaledb_data:
     name: aerostream_timescaledb_data
   redis_data:
     name: aerostream_redis_data
+  prometheus_data:
+    name: aerostream_prometheus_data
+  grafana_data:
+    name: aerostream_grafana_data
 
 networks:
   aerostream-network:

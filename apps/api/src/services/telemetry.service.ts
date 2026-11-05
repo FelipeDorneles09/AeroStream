@@ -1,13 +1,24 @@
-import { 
-  DroneTelemetry, 
-  DroneTelemetrySchema, 
-  BatchTelemetry, 
-  BatchTelemetrySchema, 
-  IngestionResponse 
-} from '@aerostream/shared-types';
-import { TelemetryRepository } from '../repositories/telemetry.repository.js';
-import { publishToStream, publishBatchToStream } from '../queue/redis-stream.js';
-import { telemetryBroadcaster } from '../sse/broadcaster.js';
+import {
+  DroneTelemetry,
+  DroneTelemetrySchema,
+  BatchTelemetry,
+  BatchTelemetrySchema,
+  IngestionResponse,
+} from "@aerostream/shared-types";
+import { TelemetryRepository } from "../repositories/telemetry.repository.js";
+import {
+  publishToStream,
+  publishBatchToStream,
+} from "../queue/redis-stream.js";
+import { telemetryBroadcaster } from "../sse/broadcaster.js";
+import {
+  telemetryIngestedCounter,
+  telemetryBatchSizeHistogram,
+  telemetryIngestionDurationHistogram,
+  redisStreamPublishDurationHistogram,
+  dbInsertDurationHistogram,
+  telemetryAlertsCounter,
+} from "../metrics/metrics.service.js";
 
 export class TelemetryService {
   constructor(private readonly repository = new TelemetryRepository()) {}
@@ -19,23 +30,32 @@ export class TelemetryService {
     const alerts: string[] = [...(record.activeAlerts || [])];
 
     // Domain rule: GPS satellite count threshold
-    if (record.sensors.satelliteCount < 20 && !alerts.includes('LOW_SATELLITE_COUNT')) {
-      alerts.push('LOW_SATELLITE_COUNT');
+    if (
+      record.sensors.satelliteCount < 20 &&
+      !alerts.includes("LOW_SATELLITE_COUNT")
+    ) {
+      alerts.push("LOW_SATELLITE_COUNT");
     }
 
     // Domain rule: Battery critical threshold
-    if (record.battery.percentage < 20 && !alerts.includes('CRITICAL_BATTERY_LEVEL')) {
-      alerts.push('CRITICAL_BATTERY_LEVEL');
+    if (
+      record.battery.percentage < 20 &&
+      !alerts.includes("CRITICAL_BATTERY_LEVEL")
+    ) {
+      alerts.push("CRITICAL_BATTERY_LEVEL");
     }
 
     // Domain rule: Thermal warning
-    if (record.battery.temperatureCelsius > 60 && !alerts.includes('BATTERY_OVERHEATING')) {
-      alerts.push('BATTERY_OVERHEATING');
+    if (
+      record.battery.temperatureCelsius > 60 &&
+      !alerts.includes("BATTERY_OVERHEATING")
+    ) {
+      alerts.push("BATTERY_OVERHEATING");
     }
 
     // Domain rule: IMU Sensor failure
-    if (!record.sensors.imuHealth && !alerts.includes('IMU_MALFUNCTION')) {
-      alerts.push('IMU_MALFUNCTION');
+    if (!record.sensors.imuHealth && !alerts.includes("IMU_MALFUNCTION")) {
+      alerts.push("IMU_MALFUNCTION");
     }
 
     return alerts;
@@ -44,58 +64,148 @@ export class TelemetryService {
   /**
    * Process a single incoming telemetry event and buffers it to Redis Stream
    */
-  async processTelemetry(payload: unknown): Promise<{ success: boolean; data: DroneTelemetry; streamId?: string }> {
-    const parsed = DroneTelemetrySchema.parse(payload);
-    const enrichedRecord: DroneTelemetry = {
-      ...parsed,
-      activeAlerts: this.evaluateSafetyRules(parsed)
-    };
+  async processTelemetry(
+    payload: unknown,
+  ): Promise<{ success: boolean; data: DroneTelemetry; streamId?: string }> {
+    const stopIngestionTimer = telemetryIngestionDurationHistogram.startTimer({
+      endpoint: "single",
+    });
 
-    // 1. Buffer to Redis Stream for real-time decoupling
-    let streamId: string | undefined;
     try {
-      streamId = await publishToStream(enrichedRecord);
-    } catch (streamErr) {
-      console.warn('[TelemetryService] Failed to publish to Redis Stream, fallback to DB only:', streamErr);
+      const parsed = DroneTelemetrySchema.parse(payload);
+      const alerts = this.evaluateSafetyRules(parsed);
+      const enrichedRecord: DroneTelemetry = {
+        ...parsed,
+        activeAlerts: alerts,
+      };
+
+      // Record any active alerts in Prometheus
+      for (const alert of alerts) {
+        telemetryAlertsCounter.inc({ alert_type: alert });
+      }
+
+      // 1. Buffer to Redis Stream for real-time decoupling
+      let streamId: string | undefined;
+      const stopRedisTimer = redisStreamPublishDurationHistogram.startTimer();
+      try {
+        streamId = await publishToStream(enrichedRecord);
+      } catch (streamErr) {
+        console.warn(
+          "[TelemetryService] Failed to publish to Redis Stream, fallback to DB only:",
+          streamErr,
+        );
+      } finally {
+        stopRedisTimer();
+      }
+
+      // 2. Persist to TimescaleDB
+      const stopDbTimer = dbInsertDurationHistogram.startTimer({
+        operation: "insert_single",
+      });
+      try {
+        await this.repository.insertTelemetry(enrichedRecord);
+      } catch (dbErr) {
+        if (streamId) {
+          console.warn(
+            `[TelemetryService] TimescaleDB write saturated; packet preserved in Redis Stream (${streamId})`,
+          );
+        } else {
+          throw dbErr;
+        }
+      } finally {
+        stopDbTimer();
+      }
+
+      // 3. Push real-time SSE update to connected web dashboards
+      telemetryBroadcaster.broadcastTelemetry(enrichedRecord);
+
+      telemetryIngestedCounter.inc({ type: "single", status: "success" });
+      stopIngestionTimer({ status: "success" });
+
+      return { success: true, data: enrichedRecord, streamId };
+    } catch (err) {
+      telemetryIngestedCounter.inc({ type: "single", status: "error" });
+      stopIngestionTimer({ status: "error" });
+      throw err;
     }
-
-    // 2. Persist to TimescaleDB
-    await this.repository.insertTelemetry(enrichedRecord);
-
-    // 3. Push real-time SSE update to connected web dashboards
-    telemetryBroadcaster.broadcastTelemetry(enrichedRecord);
-
-    return { success: true, data: enrichedRecord, streamId };
   }
 
   /**
    * Process a batch of telemetry packets and buffers them to Redis Stream
    */
-  async processBatch(payload: unknown): Promise<IngestionResponse & { bufferedToStream: boolean }> {
-    const parsed: BatchTelemetry = BatchTelemetrySchema.parse(payload);
-    
-    const enrichedRecords = parsed.records.map((record: DroneTelemetry) => ({
-      ...record,
-      activeAlerts: this.evaluateSafetyRules(record)
-    }));
+  async processBatch(
+    payload: unknown,
+  ): Promise<IngestionResponse & { bufferedToStream: boolean }> {
+    const stopBatchTimer = telemetryIngestionDurationHistogram.startTimer({
+      endpoint: "batch",
+    });
 
-    // Buffer batch to Redis Stream
-    let bufferedToStream = false;
     try {
-      await publishBatchToStream(enrichedRecords);
-      bufferedToStream = true;
-    } catch (streamErr) {
-      console.warn('[TelemetryService] Failed to pipeline batch to Redis Stream:', streamErr);
+      const parsed: BatchTelemetry = BatchTelemetrySchema.parse(payload);
+      telemetryBatchSizeHistogram.observe(parsed.records.length);
+
+      const enrichedRecords = parsed.records.map((record: DroneTelemetry) => {
+        const alerts = this.evaluateSafetyRules(record);
+        for (const alert of alerts) {
+          telemetryAlertsCounter.inc({ alert_type: alert });
+        }
+        return {
+          ...record,
+          activeAlerts: alerts,
+        };
+      });
+
+      // Buffer batch to Redis Stream
+      let bufferedToStream = false;
+      const stopRedisTimer = redisStreamPublishDurationHistogram.startTimer();
+      try {
+        await publishBatchToStream(enrichedRecords);
+        bufferedToStream = true;
+      } catch (streamErr) {
+        console.warn(
+          "[TelemetryService] Failed to pipeline batch to Redis Stream:",
+          streamErr,
+        );
+      } finally {
+        stopRedisTimer();
+      }
+
+      const stopDbTimer = dbInsertDurationHistogram.startTimer({
+        operation: "insert_batch",
+      });
+      let insertedCount = 0;
+      try {
+        insertedCount = await this.repository.insertBatch(enrichedRecords);
+      } catch (dbErr) {
+        if (bufferedToStream) {
+          console.warn(
+            `[TelemetryService] TimescaleDB batch saturated; ${enrichedRecords.length} records preserved in Redis Stream`,
+          );
+          insertedCount = enrichedRecords.length;
+        } else {
+          throw dbErr;
+        }
+      } finally {
+        stopDbTimer();
+      }
+
+      telemetryIngestedCounter.inc(
+        { type: "batch", status: "success" },
+        insertedCount,
+      );
+      stopBatchTimer({ status: "success" });
+
+      return {
+        success: true,
+        ingestedCount: insertedCount,
+        processedAt: new Date().toISOString(),
+        bufferedToStream,
+      };
+    } catch (err) {
+      telemetryIngestedCounter.inc({ type: "batch", status: "error" });
+      stopBatchTimer({ status: "error" });
+      throw err;
     }
-
-    const insertedCount = await this.repository.insertBatch(enrichedRecords);
-
-    return {
-      success: true,
-      ingestedCount: insertedCount,
-      processedAt: new Date().toISOString(),
-      bufferedToStream
-    };
   }
 
   /**

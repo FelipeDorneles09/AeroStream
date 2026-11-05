@@ -1,5 +1,5 @@
-import { ServerResponse } from 'http';
-import { DroneTelemetry } from '@aerostream/shared-types';
+import { ServerResponse } from "http";
+import { DroneTelemetry } from "@aerostream/shared-types";
 
 class TelemetryBroadcaster {
   private clients: Set<ServerResponse> = new Set();
@@ -11,9 +11,11 @@ class TelemetryBroadcaster {
     this.clients.add(res);
 
     // Send immediate initial handshake
-    res.write(`data: ${JSON.stringify({ type: 'HANDSHAKE', message: 'Connected to AeroStream Live Telemetry Feed' })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "HANDSHAKE", message: "Connected to AeroStream Live Telemetry Feed" })}\n\n`,
+    );
 
-    res.on('close', () => {
+    res.on("close", () => {
       this.clients.delete(res);
     });
   }
@@ -24,7 +26,7 @@ class TelemetryBroadcaster {
   broadcastTelemetry(telemetry: DroneTelemetry): void {
     if (this.clients.size === 0) return;
 
-    const payload = `data: ${JSON.stringify({ type: 'TELEMETRY_UPDATE', payload: telemetry })}\n\n`;
+    const payload = `data: ${JSON.stringify({ type: "TELEMETRY_UPDATE", payload: telemetry })}\n\n`;
 
     for (const client of this.clients) {
       try {
@@ -38,7 +40,11 @@ class TelemetryBroadcaster {
   /**
    * Broadcasts urgent system alerts to all connected clients
    */
-  broadcastAlert(droneId: string, alert: string, severity: 'WARNING' | 'CRITICAL'): void {
+  broadcastAlert(
+    droneId: string,
+    alert: string,
+    severity: "WARNING" | "CRITICAL",
+  ): void {
     if (this.clients.size === 0) return;
 
     const payload = `event: alert\ndata: ${JSON.stringify({ droneId, alert, severity, timestamp: new Date().toISOString() })}\n\n`;

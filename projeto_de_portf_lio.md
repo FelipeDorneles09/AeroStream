@@ -1,7 +1,7 @@
 # Projeto de portfólio para engenheiro de software pleno (2027)
 
 **Data:** Oct 21, 2026  
-**Autor:** @Felipe Dorneles  
+**Autor:** @Felipe Dorneles
 
 ---
 
@@ -10,6 +10,7 @@
 Um único projeto de portfólio, aberto e bem documentado, pode cobrir as principais lacunas do currículo frente às vagas de pleno em 2027.
 
 As lacunas que ele deve fechar, em ordem de prioridade:
+
 - Cloud, containers e observabilidade
 - System design com números e trade-offs, incluindo banco relacional em produção
 - IA aplicada, além do uso de assistentes de código
@@ -27,7 +28,7 @@ Um simulador gera telemetria de N drones (posição, bateria, satélites, alerta
 
 ### Arquitetura da Plataforma (8 componentes)
 
-*Os eventos entram pela API e esperam numa fila. Workers validam regras (por exemplo, satélites abaixo de 20) e gravam o resultado. O dashboard lê o estado atual do cache, e o assistente de IA lê os logs do voo para explicar anomalias.*
+_Os eventos entram pela API e esperam numa fila. Workers validam regras (por exemplo, satélites abaixo de 20) e gravam o resultado. O dashboard lê o estado atual do cache, e o assistente de IA lê os logs do voo para explicar anomalias._
 
 ```mermaid
 graph TD
@@ -39,13 +40,14 @@ graph TD
     E --> G[Dashboard<br/>Next.js, tempo real<br/>e replay de voo]
     F -. lê os logs do voo .-> H[Assistente de IA<br/>LLM + RAG sobre a<br/>doc. de parâmetros]
     G --> H
-    
+
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
     class C highlight;
     classDef highlight fill:#e6f7ff,stroke:#1890ff,stroke-width:2px;
 ```
 
 **Camadas base de infraestrutura:**
+
 - **Observabilidade em todos os componentes:** OpenTelemetry, Prometheus e Grafana.
 - **Entrega:** Terraform, AWS (ECS Fargate ou EKS) e GitHub Actions.
 
@@ -55,15 +57,15 @@ graph TD
 
 Cada lacuna do currículo tem uma entrega concreta e verificável no projeto.
 
-| Lacuna | O que entra no projeto |
-| :--- | :--- |
-| **Cloud e containers** | Docker Compose local, deploy na AWS (ECS Fargate ou EKS) com Terraform, CI/CD no GitHub Actions |
-| **Observabilidade** | OpenTelemetry, Grafana e Prometheus, logs estruturados, alertas e um painel de custo |
-| **System design** | Fila, cache, pub/sub, PostgreSQL relacional, decisões registradas em ADRs |
-| **IA aplicada** | Assistente de diagnóstico: o LLM lê o log de um voo e explica anomalias, com RAG sobre a documentação de parâmetros e avaliação de qualidade |
-| **Testes** | Unitários, integração com banco real (Testcontainers), E2E com Playwright, teste de carga com k6 |
-| **Segurança** | Rate limiting, validação de entrada, gestão de segredos, checklist OWASP, scan de dependências no CI |
-| **Colaboração** | Pull requests revisados por outra pessoa, issues organizadas, README claro, CONTRIBUTING |
+| Lacuna                 | O que entra no projeto                                                                                                                       |
+| :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cloud e containers** | Docker Compose local, deploy na AWS (ECS Fargate ou EKS) com Terraform, CI/CD no GitHub Actions                                              |
+| **Observabilidade**    | OpenTelemetry, Grafana e Prometheus, logs estruturados, alertas e um painel de custo                                                         |
+| **System design**      | Fila, cache, pub/sub, PostgreSQL relacional, decisões registradas em ADRs                                                                    |
+| **IA aplicada**        | Assistente de diagnóstico: o LLM lê o log de um voo e explica anomalias, com RAG sobre a documentação de parâmetros e avaliação de qualidade |
+| **Testes**             | Unitários, integração com banco real (Testcontainers), E2E com Playwright, teste de carga com k6                                             |
+| **Segurança**          | Rate limiting, validação de entrada, gestão de segredos, checklist OWASP, scan de dependências no CI                                         |
+| **Colaboração**        | Pull requests revisados por outra pessoa, issues organizadas, README claro, CONTRIBUTING                                                     |
 
 ---
 
@@ -71,7 +73,7 @@ Cada lacuna do currículo tem uma entrega concreta e verificável no projeto.
 
 O que convence um recrutador são resultados medidos e decisões explicadas, não a lista de tecnologias.
 
-- **Números reais:** o k6 mostra quantos eventos por segundo o sistema aguenta, a latência p95 e onde aparece o gargalo. *"Aguenta 2 mil eventos por segundo com p95 de 80 ms"* vale mais que uma lista de ferramentas. Os valores acima são exemplo de formato, não metas.
+- **Números reais:** o k6 mostra quantos eventos por segundo o sistema aguenta, a latência p95 e onde aparece o gargalo. _"Aguenta 2 mil eventos por segundo com p95 de 80 ms"_ vale mais que uma lista de ferramentas. Os valores acima são exemplo de formato, não metas.
 - **Um post-mortem:** derrube o sistema de propósito, ache o gargalo e documente a correção.
 - **Diagrama de arquitetura e ADRs no README:** explicando por que você escolheu X em vez de Y.
 - **Custo sob controle:** use free tier, escale a zero quando possível e documente quanto custa por mês, o que mostra FinOps na prática.
@@ -100,7 +102,7 @@ flowchart LR
     end
     C --> D[<b>Fase 4: IA</b><br/>Assistente com RAG<br/>e avaliação de<br/>qualidade]
     D --> E[<b>Fase 5: Fechamento</b><br/>Segurança,<br/>post-mortem e<br/>README final]
-    
+
     style A fill:#f0f8ff,stroke:#0066cc
     style B fill:#f0f8ff,stroke:#0066cc
     style C fill:#f0f8ff,stroke:#0066cc
@@ -115,6 +117,7 @@ flowchart LR
 O maior risco é o escopo: um projeto tão amplo pode ficar pela metade. Se o tempo for curto, priorize as fases 1 a 3 do roadmap, que já cobrem cloud, system design e testes, e deixe a IA como a última camada.
 
 **Próximos Passos:**
+
 - [ ] Decidir entre a ideia principal e uma das alternativas
 - [ ] Detalhar stack, estrutura de pastas e entregáveis de cada fase
 - [ ] Escrever o primeiro ADR (escolha do banco e da fila)

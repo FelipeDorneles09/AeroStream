@@ -21,6 +21,7 @@ We follow a trunk-based branch model with short-lived feature branches:
 We strictly follow the **[Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/)**. This ensures a clean, searchable git history and automated changelog generation.
 
 ### Format
+
 ```text
 <type>(<optional scope>): <description in imperative mood>
 
@@ -30,6 +31,7 @@ We strictly follow the **[Conventional Commits specification](https://www.conven
 ```
 
 ### Types
+
 - `feat`: A new feature
 - `fix`: A bug fix
 - `docs`: Documentation only changes
@@ -40,6 +42,7 @@ We strictly follow the **[Conventional Commits specification](https://www.conven
 - `chore`: Build process, auxiliary tools, or library updates
 
 ### Examples
+
 - `feat(ingestion): implement rate limiting middleware with sliding window`
 - `fix(worker): prevent race condition when updating redis hot state cache`
 - `docs(adr): record architectural decision on timescaledb vs influxdb`

@@ -9,6 +9,7 @@
 ## Context
 
 In high-throughput drone fleet management, thousands of telemetry packets arrive concurrently every minute. Processing every packet synchronously within the HTTP request cycle causes several critical architectural bottlenecks:
+
 1. **Tight Coupling:** If the database experiences write locks or high I/O latency, the Ingestion API slows down, risking client timeouts or dropped packets.
 2. **Backpressure Vulnerability:** Sudden bursts of telemetry (e.g., multiple drones reconnecting after a signal blackout) can exhaust HTTP server memory and worker pools.
 3. **Real-Time Client Updates:** Modern web dashboards require sub-second UI updates without hammering the backend with repetitive polling (`setInterval` HTTP requests).
@@ -20,6 +21,7 @@ We need an asynchronous buffer between ingestion and processing, a resilient wor
 ## Decision
 
 ### 1. Ingestion Decoupling via Redis Streams & Consumer Groups
+
 - **Chosen:** Redis Streams using Consumer Groups (`XREADGROUP` + `XACK`).
 - **Alternatives Considered:** RabbitMQ (AMQP), Apache Kafka, AWS SQS.
 - **Rationale:**
@@ -29,6 +31,7 @@ We need an asynchronous buffer between ingestion and processing, a resilient wor
   - **Memory Bounded (FinOps):** Using approximate trimming (`MAXLEN ~ 100000`) prevents unbounded Redis memory consumption during worker downtimes.
 
 ### 2. Dual-Layer Hot State Cache with Geospatial Indexing
+
 - **Chosen:** Redis Hashes (`drone:<id>:state`) combined with `GEOADD fleet:geopos`.
 - **Rationale:**
   - Relational queries to TimescaleDB for "current position of 100 drones" introduce disk I/O contention.
@@ -36,6 +39,7 @@ We need an asynchronous buffer between ingestion and processing, a resilient wor
   - Redis native `GEOSEARCH` allows sub-2ms proximity searches (e.g., "find all drones within 10 km of coordinate X, Y").
 
 ### 3. Web Dashboard Push: Server-Sent Events (SSE) over WebSockets
+
 - **Chosen:** Server-Sent Events (`text/event-stream`).
 - **Alternatives Considered:** WebSockets, Polling (`GET /fleet/live` every 1s).
 - **Rationale:**
