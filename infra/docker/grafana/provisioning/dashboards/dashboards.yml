@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'AeroStream Dashboards'
+    orgId: 1
+    folder: 'AeroStream'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
