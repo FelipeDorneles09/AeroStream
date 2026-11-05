@@ -104,6 +104,14 @@ export class TelemetryService {
       });
       try {
         await this.repository.insertTelemetry(enrichedRecord);
+      } catch (dbErr) {
+        if (streamId) {
+          console.warn(
+            `[TelemetryService] TimescaleDB write saturated; packet preserved in Redis Stream (${streamId})`,
+          );
+        } else {
+          throw dbErr;
+        }
       } finally {
         stopDbTimer();
       }
@@ -168,6 +176,15 @@ export class TelemetryService {
       let insertedCount = 0;
       try {
         insertedCount = await this.repository.insertBatch(enrichedRecords);
+      } catch (dbErr) {
+        if (bufferedToStream) {
+          console.warn(
+            `[TelemetryService] TimescaleDB batch saturated; ${enrichedRecords.length} records preserved in Redis Stream`,
+          );
+          insertedCount = enrichedRecords.length;
+        } else {
+          throw dbErr;
+        }
       } finally {
         stopDbTimer();
       }

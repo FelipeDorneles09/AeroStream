@@ -10,9 +10,9 @@ export const dbPool = new Pool({
   password: config.db.password,
   database: config.db.database,
   ssl: config.db.ssl ? { rejectUnauthorized: false } : false,
-  max: 20,
+  max: parseInt(process.env.DB_POOL_MAX || "50", 10),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
 
 dbPool.on("error", (err) => {

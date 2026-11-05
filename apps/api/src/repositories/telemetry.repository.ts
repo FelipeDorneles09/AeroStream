@@ -44,49 +44,47 @@ export class TelemetryRepository {
   async insertBatch(records: DroneTelemetry[]): Promise<number> {
     if (records.length === 0) return 0;
 
-    const client = await dbPool.connect();
-    try {
-      await client.query("BEGIN");
+    const valueRows: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
-      for (const record of records) {
-        const query = `
-          INSERT INTO drone_telemetry (
-            time, drone_id, latitude, longitude, altitude_meters,
-            speed_kmh, heading_degrees, battery_percentage, battery_voltage,
-            battery_temperature, satellite_count, gps_fix, imu_health,
-            status, active_alerts
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-          );
-        `;
-        const values = [
-          record.timestamp,
-          record.droneId,
-          record.location.latitude,
-          record.location.longitude,
-          record.location.altitudeMeters,
-          record.velocity.speedKmh,
-          record.velocity.headingDegrees,
-          record.battery.percentage,
-          record.battery.voltage,
-          record.battery.temperatureCelsius,
-          record.sensors.satelliteCount,
-          record.sensors.gpsFix,
-          record.sensors.imuHealth,
-          record.status,
-          record.activeAlerts,
-        ];
-        await client.query(query, values);
+    for (const record of records) {
+      const rowParams: string[] = [];
+      for (let i = 0; i < 15; i++) {
+        rowParams.push(`$${paramIndex++}`);
       }
+      valueRows.push(`(${rowParams.join(', ')})`);
 
-      await client.query("COMMIT");
-      return records.length;
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
+      values.push(
+        record.timestamp,
+        record.droneId,
+        record.location.latitude,
+        record.location.longitude,
+        record.location.altitudeMeters,
+        record.velocity.speedKmh,
+        record.velocity.headingDegrees,
+        record.battery.percentage,
+        record.battery.voltage,
+        record.battery.temperatureCelsius,
+        record.sensors.satelliteCount,
+        record.sensors.gpsFix,
+        record.sensors.imuHealth,
+        record.status,
+        record.activeAlerts
+      );
     }
+
+    const query = `
+      INSERT INTO drone_telemetry (
+        time, drone_id, latitude, longitude, altitude_meters,
+        speed_kmh, heading_degrees, battery_percentage, battery_voltage,
+        battery_temperature, satellite_count, gps_fix, imu_health,
+        status, active_alerts
+      ) VALUES ${valueRows.join(', ')};
+    `;
+
+    await dbPool.query(query, values);
+    return records.length;
   }
 
   /**
